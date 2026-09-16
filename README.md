@@ -359,3 +359,9 @@ Check that:
 * The three columns are numeric;
 * The values are not all missing;
 * Groups are specified.
+
+
+## Contributions
+* Alain Queffelec coded initial scripts for CLR (thanks to some plotting functions by Julien Le Guirriec) and ternary diagrams;
+* Morgann Pauvert created an initial version of the Shiny app based on these scripts;
+* Alain Queffelec refined, extended, and translated the Shiny app.
