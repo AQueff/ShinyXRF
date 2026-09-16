@@ -5,8 +5,6 @@
 # Helper Functions####
 # These are functions used ONLY in the server logic
 
-
-
 # --- Reactive Data and State ####
 server <- function(input, output, session) {
 #### 1. DATA LOADING AND PREPROCESSING ####
@@ -928,7 +926,7 @@ server <- function(input, output, session) {
       axes <- suppressWarnings(as.integer(axes))
       
       if (length(axes) != 2 || any(is.na(axes)) || max(axes) > ncol(clr_matrix) || length(unique(axes)) != 2) {
-        stop("Axes CLR indisponibles")
+        stop("No CLR axes")
       }
       
       pca <- prcomp(clr_matrix, center = TRUE, scale. = FALSE)
@@ -951,7 +949,7 @@ server <- function(input, output, session) {
       axes <- suppressWarnings(as.integer(axes))
       
       if (length(axes) != 2 || any(is.na(axes)) || max(axes) > ncol(alr_matrix) || length(unique(axes)) != 2) {
-        stop("Axes ALR indisponibles")
+        stop("No ALR axes")
       }
       
       pca <- prcomp(alr_matrix, center = TRUE, scale. = FALSE)
@@ -974,7 +972,7 @@ server <- function(input, output, session) {
       axes <- suppressWarnings(as.integer(axes))
       
       if (length(axes) != 2 || any(is.na(axes)) || max(axes) > ncol(ilr_matrix) || length(unique(axes)) != 2) {
-        stop("Axes ILR indisponibles")
+        stop("No ILR axes")
       }
       
       pca <- prcomp(ilr_matrix, center = TRUE, scale. = FALSE)
