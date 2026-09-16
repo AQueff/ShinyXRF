@@ -16,6 +16,7 @@ The application allows, in particular, to prepare data, select samples, produce 
 * [Available Exports](#available-exports)
 * [Data Preparation Tips](#data-preparation-tips)
 * [Troubleshooting](#troubleshooting)
+* [Contributions](#contributions)
 
 ---
 
