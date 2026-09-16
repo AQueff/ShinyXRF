@@ -2,8 +2,7 @@
 
 **ShinyXRF** application allow exploration, transformation, and visualization of data from XRF (or other geochemical) analyses.
 
-The application allows, in particular, to prepare data, select samples, produce CLR/ALR/ILR biplots, generate 2D plots, create ternary diagrams, and export results in CSV, PDF, or PNG formats.
-
+The application allows, in particular, to prepare data, select samples, produce CLR/ALR/ILR biplots, generate 2D plots, create ternary diagrams, and export results in CSV, PDF, or PNG formats. The folder contains a demo dataset.
 ---
 
 ## Table of Contents
