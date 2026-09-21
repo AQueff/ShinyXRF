@@ -188,8 +188,9 @@ In the **CLR Biplot** tab:
 
 1. Choose the elements to include;
 2. Choose the PCA axes to display;
-3. View the interactive plot;
-4. Optionally enable `dimensio` plots.
+3. Choose the groups to be used for calculation, other groups will be only projected in the PCA; 
+4. View the interactive plot;
+5. Optionally enable `dimensio` plots.
 
 It is recommended to select at least three elements.
 
@@ -201,7 +202,9 @@ In the **ALR Biplot** tab:
 
 1. Choose the elements to include;
 2. Choose the PCA axes to display;
-3. View the interactive plot;
+3. Choose the groups to be used for calculation, other groups will be only projected in the PCA; 
+4. View the interactive plot;
+5. Optionally enable `dimensio` plots.
 
 It is recommended to select at least three elements.
 
@@ -211,7 +214,9 @@ In the **ILR Biplot** tab:
 
 1. Choose the elements to include;
 2. Choose the PCA axes to display;
-3. View the interactive plot;
+3. Choose the groups to be used for calculation, other groups will be only projected in the PCA; 
+4. View the interactive plot;
+5. Optionally enable `dimensio` plots.
 
 It is recommended to select at least three elements.
 
