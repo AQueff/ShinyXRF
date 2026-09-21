@@ -65,6 +65,7 @@ server <- function(input, output, session) {
   })
   
   #### 3. DATA PREPARATION ####
+  
   prepared <- reactive({
     raw <- raw_data()
     req(input$sample_col, input$group_col)
@@ -96,6 +97,7 @@ server <- function(input, output, session) {
       object_ilr = nexus::transform_ilr(data_compo)
     )
   })
+  
   
   observe({
     req(raw_data())
@@ -221,7 +223,6 @@ server <- function(input, output, session) {
   observeEvent(input$clear_samples, {
     DT::selectRows(data_preview_proxy, NULL)
   })
-  
   
   #### 4. DYNAMIC UI ELEMENTS ####
   output$data_mapping_ui <- renderUI({
@@ -865,7 +866,7 @@ server <- function(input, output, session) {
         } else {
           actionButton(
             paste0(id, "_text_edit"),
-            "Clic to modify",
+            "Clic to modify Title and labels",
             class = "plot-text-toggle"
           )
         }
@@ -921,6 +922,8 @@ server <- function(input, output, session) {
   
   clr_biplot_default_labels <- function() {
     tryCatch({
+      req(selected_clr_matrix(), input$clr_biplot_elements)
+      
       clr_matrix <- selected_clr_matrix()
       axes <- c(input$clr_axis_x %||% 1, input$clr_axis_y %||% 2)
       axes <- suppressWarnings(as.integer(axes))
@@ -929,7 +932,28 @@ server <- function(input, output, session) {
         stop("No CLR axes")
       }
       
-      pca <- prcomp(clr_matrix, center = TRUE, scale. = FALSE)
+      if (!is.null(input$pca_calculation_groups) && length(input$pca_calculation_groups) > 0) {
+        req(selected_prepared(), input$group_col)
+        
+        selected_data <- selected_prepared()$data
+        split_result <- split_data_for_projection(
+          data = selected_data,
+          group_col = input$group_col,
+          calculation_groups = input$pca_calculation_groups_clr
+        )
+        
+        calc_indices <- split_result$calculation_indices
+        
+        if (length(calc_indices) >= 2) {
+          calc_matrix <- clr_matrix[calc_indices, , drop = FALSE]
+          pca <- prcomp(calc_matrix, center = TRUE, scale. = FALSE)
+        } else {
+          pca <- prcomp(clr_matrix, center = TRUE, scale. = FALSE)
+        }
+      } else {
+        pca <- prcomp(clr_matrix, center = TRUE, scale. = FALSE)
+      }
+      
       var_pca <- pca$sdev^2 / sum(pca$sdev^2)
       
       list(
@@ -944,6 +968,8 @@ server <- function(input, output, session) {
   
   alr_biplot_default_labels <- function() {
     tryCatch({
+      req(selected_alr_matrix(), input$alr_biplot_elements)
+      
       alr_matrix <- selected_alr_matrix()
       axes <- c(input$alr_axis_x %||% 1, input$alr_axis_y %||% 2)
       axes <- suppressWarnings(as.integer(axes))
@@ -952,7 +978,28 @@ server <- function(input, output, session) {
         stop("No ALR axes")
       }
       
-      pca <- prcomp(alr_matrix, center = TRUE, scale. = FALSE)
+      if (!is.null(input$pca_calculation_groups) && length(input$pca_calculation_groups) > 0) {
+        req(selected_prepared(), input$group_col)
+        
+        selected_data <- selected_prepared()$data
+        split_result <- split_data_for_projection(
+          data = selected_data,
+          group_col = input$group_col,
+          calculation_groups = input$pca_calculation_groups_alr
+        )
+        
+        calc_indices <- split_result$calculation_indices
+        
+        if (length(calc_indices) >= 2) {
+          calc_matrix <- alr_matrix[calc_indices, , drop = FALSE]
+          pca <- prcomp(calc_matrix, center = TRUE, scale. = FALSE)
+        } else {
+          pca <- prcomp(alr_matrix, center = TRUE, scale. = FALSE)
+        }
+      } else {
+        pca <- prcomp(alr_matrix, center = TRUE, scale. = FALSE)
+      }
+      
       var_pca <- pca$sdev^2 / sum(pca$sdev^2)
       
       list(
@@ -967,6 +1014,8 @@ server <- function(input, output, session) {
   
   ilr_biplot_default_labels <- function() {
     tryCatch({
+      req(selected_ilr_matrix(), input$ilr_biplot_elements)
+      
       ilr_matrix <- selected_ilr_matrix()
       axes <- c(input$ilr_axis_x %||% 1, input$ilr_axis_y %||% 2)
       axes <- suppressWarnings(as.integer(axes))
@@ -975,7 +1024,28 @@ server <- function(input, output, session) {
         stop("No ILR axes")
       }
       
-      pca <- prcomp(ilr_matrix, center = TRUE, scale. = FALSE)
+      if (!is.null(input$pca_calculation_groups) && length(input$pca_calculation_groups) > 0) {
+        req(selected_prepared(), input$group_col)
+        
+        selected_data <- selected_prepared()$data
+        split_result <- split_data_for_projection(
+          data = selected_data,
+          group_col = input$group_col,
+          calculation_groups = input$pca_calculation_groups_ilr
+        )
+        
+        calc_indices <- split_result$calculation_indices
+        
+        if (length(calc_indices) >= 2) {
+          calc_matrix <- ilr_matrix[calc_indices, , drop = FALSE]
+          pca <- prcomp(calc_matrix, center = TRUE, scale. = FALSE)
+        } else {
+          pca <- prcomp(ilr_matrix, center = TRUE, scale. = FALSE)
+        }
+      } else {
+        pca <- prcomp(ilr_matrix, center = TRUE, scale. = FALSE)
+      }
+      
       var_pca <- pca$sdev^2 / sum(pca$sdev^2)
       
       list(
@@ -1055,24 +1125,46 @@ server <- function(input, output, session) {
   #### 6. PLOT RENDERING ####
   ##### CLR Biplot ####
   clr_biplot_plot <- reactive({
-    clr_matrix <- selected_clr_matrix()
-    axes <- c(input$clr_axis_x, input$clr_axis_y)
-    validate(need(length(unique(axes)) == 2, "Both CLR axis must be different."))
-    validate(need(max(axes) <= ncol(clr_matrix), paste0("Axes must be <= ", ncol(clr_matrix), ".")))
+    req(input$clr_biplot_elements, selected_prepared())
     
-    plot_clr_biplot(
-      clr_matrix = clr_matrix,
-      ids = selected_prepared()$data[[input$sample_col]],
-      groups = selected_prepared()$data[[input$group_col]],
-      title = plot_titles$clr_biplot(),
-      axes = axes,
+    selected_data <- selected_prepared()$data
+    group_col <- input$group_col
+    sample_col <- input$sample_col
+    
+    validate(need(nrow(selected_data) >= 2, "Choose at least 2 samples for the CLR biplot."))
+    validate(need(length(input$clr_biplot_elements) >= 2, "Choose at least two elements for the CLR biplot."))
+    
+    clr_matrix <- make_selected_clr_matrix(
+      df = selected_data,
+      elements = input$clr_biplot_elements,
+      group_col = group_col
+    )
+    
+    split_result <- split_data_for_projection(
+      data = selected_data,
+      group_col = group_col,
+      calculation_groups = input$pca_calculation_groups_clr
+    )
+    
+    calc_indices <- split_result$calculation_indices
+    
+    validate(need(length(calc_indices) >= 2, 
+                  "At least 2 samples from calculation groups are required for PCA."))
+    
+    create_biplot_with_projection(
+      matrix_data = as.matrix(clr_matrix),
+      group_values = selected_data[[group_col]],
+      sample_ids = selected_data[[sample_col]],
+      calculation_indices = calc_indices,
+      axes = c(input$clr_axis_x, input$clr_axis_y),
       colour_label = input$group_col,
       palette_name = input$group_palette_name,
       aesthetic_mode = group_aesthetic_mode(),
       shape_palette_name = group_shape_palette_name(),
       axis_text_size = axis_text_sizes$clr_biplot(),
       label_overrides = plot_labels$clr_biplot(),
-      show_confidence_ellipses = input$show_confidence_ellipses
+      show_confidence_ellipses = input$show_confidence_ellipses,
+      title = plot_titles$clr_biplot()
     )
   })
   
@@ -1094,24 +1186,51 @@ server <- function(input, output, session) {
   
   ##### ALR Biplot ####
   alr_biplot_plot <- reactive({
-    alr_matrix <- selected_alr_matrix()
-    axes <- c(input$alr_axis_x, input$alr_axis_y)
-    validate(need(length(unique(axes)) == 2, "Both ALR axis must be different."))
-    validate(need(max(axes) <= ncol(alr_matrix), paste0("Axes must be <= ", ncol(alr_matrix), ".")))
+    req(input$alr_biplot_elements, selected_prepared())
     
-    plot_alr_biplot(
-      alr_matrix = alr_matrix,
-      ids = selected_prepared()$data[[input$sample_col]],
-      groups = selected_prepared()$data[[input$group_col]],
-      title = paste("ALR biplot", input$alr_denominator, ")"),
-      axes = axes,
+    selected_data <- selected_prepared()$data 
+    group_col <- input$group_col
+    sample_col <- input$sample_col
+    
+    validate(need(nrow(selected_data) >= 2, "Choose at least 2 samples for the ALR biplot."))
+    validate(need(length(input$alr_biplot_elements) >= 2, "Choose at least two elements for ALR."))
+    
+    check_columns(selected_data, c(group_col, input$alr_biplot_elements))
+    
+    
+    alr_data <- selected_data[, c(group_col, input$alr_biplot_elements), drop = FALSE]
+    selected_compo <- nexus::as_composition(alr_data, groups = 1)
+    selected_alr <- nexus::transform_alr(selected_compo, j = alr_denominator_index())
+    alr_matrix <- as_clr_matrix(selected_alr)
+    if (is.null(colnames(alr_matrix))) {
+      colnames(alr_matrix) <- input$alr_biplot_elements
+    }
+    
+      split_result <- split_data_for_projection(
+      data = selected_data,  
+      group_col = group_col,
+      calculation_groups = input$pca_calculation_groups_alr
+    )
+    
+    calc_indices <- split_result$calculation_indices
+    
+    validate(need(length(calc_indices) >= 2, 
+                  "At least 2 samples from calculation groups are required for PCA."))
+    
+    create_biplot_with_projection(
+      matrix_data = alr_matrix,  
+      group_values = selected_data[[group_col]], 
+      sample_ids = selected_data[[sample_col]], 
+      calculation_indices = calc_indices,
+      axes = c(input$alr_axis_x, input$alr_axis_y),
       colour_label = input$group_col,
       palette_name = input$group_palette_name,
       aesthetic_mode = group_aesthetic_mode(),
       shape_palette_name = group_shape_palette_name(),
       axis_text_size = axis_text_sizes$alr_biplot(),
       label_overrides = plot_labels$alr_biplot(),
-      show_confidence_ellipses = input$show_confidence_ellipses_alr
+      show_confidence_ellipses = input$show_confidence_ellipses_alr,
+      title = paste("ALR biplot (Denominator:", input$alr_denominator, ")")
     )
   })
   
@@ -1133,24 +1252,50 @@ server <- function(input, output, session) {
   
   ##### ILR Biplot ####
   ilr_biplot_plot <- reactive({
-    ilr_matrix <- selected_ilr_matrix()
-    axes <- c(input$ilr_axis_x, input$ilr_axis_y)
-    validate(need(length(unique(axes)) == 2, "Both ILR axis must be different."))
-    validate(need(max(axes) <= ncol(ilr_matrix), paste0("Axes must be <= ", ncol(ilr_matrix), ".")))
+    req(input$ilr_biplot_elements, selected_prepared())
     
-    plot_ilr_biplot(
-      ilr_matrix = ilr_matrix,
-      ids = selected_prepared()$data[[input$sample_col]],
-      groups = selected_prepared()$data[[input$group_col]],
-      title = "ILR biplot",
-      axes = axes,
+    selected_data <- selected_prepared()$data
+    group_col <- input$group_col
+    sample_col <- input$sample_col
+    
+    validate(need(nrow(selected_data) >= 2, "Choose at least 2 samples for the ILR biplot."))
+    validate(need(length(input$ilr_biplot_elements) >= 2, "Choose at least two elements for ILR."))
+    
+    check_columns(selected_data, c(group_col, input$ilr_biplot_elements))
+    
+    ilr_data <- selected_data[, c(group_col, input$ilr_biplot_elements), drop = FALSE]
+    selected_compo <- nexus::as_composition(ilr_data, groups = 1)
+    selected_ilr <- nexus::transform_ilr(selected_compo)
+    ilr_matrix <- as_clr_matrix(selected_ilr)
+    if (is.null(colnames(ilr_matrix))) {
+      colnames(ilr_matrix) <- input$ilr_biplot_elements
+    }
+    
+    split_result <- split_data_for_projection(
+      data = selected_data,
+      group_col = group_col,
+      calculation_groups = input$pca_calculation_groups_ilr
+    )
+    
+    calc_indices <- split_result$calculation_indices
+    
+    validate(need(length(calc_indices) >= 2, 
+                  "At least 2 samples from calculation groups are required for PCA."))
+    
+    create_biplot_with_projection(
+      matrix_data = ilr_matrix,
+      group_values = selected_data[[group_col]],
+      sample_ids = selected_data[[sample_col]],
+      calculation_indices = calc_indices,
+      axes = c(input$ilr_axis_x, input$ilr_axis_y),
       colour_label = input$group_col,
       palette_name = input$group_palette_name,
       aesthetic_mode = group_aesthetic_mode(),
       shape_palette_name = group_shape_palette_name(),
       axis_text_size = axis_text_sizes$ilr_biplot(),
-      label_overrides = plot_labels$alr_biplot(),
-      show_confidence_ellipses = input$show_confidence_ellipses_ilr
+      label_overrides = plot_labels$ilr_biplot(),
+      show_confidence_ellipses = input$show_confidence_ellipses_alr,
+      title = "ILR Biplot"
     )
   })
   
@@ -1532,14 +1677,58 @@ server <- function(input, output, session) {
     print(ternary_ggtern_plot())
   })
   
-
+  # Fonction helper pour éviter la duplication de code
+  update_pca_groups <- function(session, input_id, prepared_data, group_col) {
+    req(prepared_data, group_col)
+    groups <- unique(na.omit(prepared_data[[group_col]]))
+    updateCheckboxGroupInput(session, input_id, choices = groups, selected = groups)
+  }
   
-  #### 7. DATA TABLES ####
+  # Observateur pour CLR
+  observe({
+    req(prepared(), input$group_col)
+    update_pca_groups(session, "pca_calculation_groups_clr", prepared()$data, input$group_col)
+  })
+  
+  # Observateur pour ALR
+  observe({
+    req(prepared(), input$group_col)
+    update_pca_groups(session, "pca_calculation_groups_alr", prepared()$data, input$group_col)
+  })
+  
+  # Observateur pour ILR
+  observe({
+    req(prepared(), input$group_col)
+    update_pca_groups(session, "pca_calculation_groups_ilr", prepared()$data, input$group_col)
+  })
+  
+  # Sélection rapide: tous les groupes pour CLR
+  observeEvent(input$select_all_for_pca_clr, {
+    req(prepared(), input$group_col)
+    groups <- unique(na.omit(prepared()$data[[input$group_col]]))
+    updateCheckboxGroupInput(session, "pca_calculation_groups_clr", selected = groups)
+  })
+  
+  # Sélection rapide: tous les groupes pour ALR
+  observeEvent(input$select_all_for_pca_alr, {
+    req(prepared(), input$group_col)
+    groups <- unique(na.omit(prepared()$data[[input$group_col]]))
+    updateCheckboxGroupInput(session, "pca_calculation_groups_alr", selected = groups)
+  })
+  
+  # Sélection rapide: tous les groupes pour ILR
+  observeEvent(input$select_all_for_pca_ilr, {
+    req(prepared(), input$group_col)
+    groups <- unique(na.omit(prepared()$data[[input$group_col]]))
+    updateCheckboxGroupInput(session, "pca_calculation_groups_ilr", selected = groups)
+  })
+  
+   #### 7. DATA TABLES ####
   output$data_summary <- renderPrint({
     p <- prepared()
     cat("File:", input$input_file$name, "\n")
     selected_n <- if (is.null(input$data_preview_rows_selected)) nrow(p$data) else length(input$data_preview_rows_selected)
-    cat("Nunmber of samples:", nrow(p$data), "\n")
+    cat("Number of samples:", nrow(p$data), "\n")
     cat("Selected samples:", selected_n, "/", nrow(p$data), "\n")
     cat("Number of information columns:", ncol(p$sample_info), "\n")
     cat("Number of chemical variables:", ncol(p$chem_data), "\n")

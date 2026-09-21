@@ -705,16 +705,109 @@ ui <- fluidPage(
         tabPanel(
           "CLR biplot",
           br(),
-          wellPanel(
-            h4("Choice of CLR biplot"),
-            uiOutput("clr_ui"),
-            checkboxInput("show_dimensio_plots", "Display dimensio plots", value = FALSE),
-            checkboxInput("show_confidence_ellipses", "Show Confidence Ellipses", value = FALSE)
+     
+          fluidRow(
+            column(
+              6,
+              wellPanel(
+                h4("Choice of CLR biplot"),
+                uiOutput("clr_ui"),
+                checkboxInput("show_dimensio_plots", "Display dimensio plots", value = FALSE),
+                checkboxInput("show_confidence_ellipses", "Show Confidence Ellipses", value = FALSE)
+              )
+            ),
+            
+            column(
+              6,
+              wellPanel(
+                h4("PCA Calculation Groups"),
+                checkboxGroupInput(
+                  "pca_calculation_groups_clr",
+                  "Groups for PCA calculation:",
+                  choices = NULL,
+                  selected = NULL,
+                  inline = FALSE
+                ),
+                tags$small(
+                  "Only samples from these groups will be used to calculate the PCA axes. All groups will be displayed.",
+                  style = "color: var(--xrf-muted); display: block; margin-top: 5px;"
+                ),
+                tags$div(
+                  style = "margin-top: 10px;",
+                  actionButton("select_all_for_pca_clr", "Select All Groups", class = "btn-default")
+                )
+              )
+            )
           ),
+          
           plot_text_controls_ui("clr_biplot"),
           axis_text_controls_ui("clr_biplot"),
+          
           plotlyOutput("clr_biplot", height = "650px"),
           export_controls_ui("clr_biplot", "Export CLR biplot"),
+          
+          conditionalPanel(
+            condition = "input.show_dimensio_plots === true",
+            plot_text_controls_ui("dimensio_scree"),
+            axis_text_controls_ui("dimensio_scree"),
+            plotOutput("dimensio_scree", height = "350px"),
+            export_controls_ui("dimensio_scree", "Export (dimensio)"),
+            plot_text_controls_ui("dimensio_individuals"),
+            axis_text_controls_ui("dimensio_individuals"),
+            plotOutput("dimensio_individuals", height = "450px"),
+            export_controls_ui("dimensio_individuals", "Export individuals (dimensio)"),
+            plot_text_controls_ui("dimensio_variables"),
+            axis_text_controls_ui("dimensio_variables"),
+            plotOutput("dimensio_variables", height = "450px"),
+            export_controls_ui("dimensio_variables", "Export variables (dimensio)")
+          )
+        ),
+          
+        # ALR Biplot Tab
+        tabPanel(
+          "ALR biplot",
+          br(),
+          
+          fluidRow(
+            column(
+              6,
+              wellPanel(
+                h4("Choice of ALR biplot"),
+                uiOutput("alr_ui"),
+                checkboxInput("show_dimensio_plots", "Display dimensio plots", value = FALSE),
+                checkboxInput("show_confidence_ellipses", "Show Confidence Ellipses", value = FALSE)
+              )
+            ),
+            
+            column(
+              6,
+              wellPanel(
+                h4("PCA Calculation Groups"),
+                checkboxGroupInput(
+                  "pca_calculation_groups_alr",
+                  "Groups for PCA calculation:",
+                  choices = NULL,
+                  selected = NULL,
+                  inline = FALSE
+                ),
+                tags$small(
+                  "Only samples from these groups will be used to calculate the PCA axes. All groups will be displayed.",
+                  style = "color: var(--xrf-muted); display: block; margin-top: 5px;"
+                ),
+                tags$div(
+                  style = "margin-top: 10px;",
+                  actionButton("select_all_for_pca_alr", "Select All Groups", class = "btn-default")
+                )
+              )
+            )
+          ),
+          
+          plot_text_controls_ui("alr_biplot"),
+          axis_text_controls_ui("alr_biplot"),
+          
+          plotlyOutput("alr_biplot", height = "650px"),
+          export_controls_ui("alr_biplot", "Export ALR biplot"),
+          
           conditionalPanel(
             condition = "input.show_dimensio_plots === true",
             plot_text_controls_ui("dimensio_scree"),
@@ -732,34 +825,66 @@ ui <- fluidPage(
           )
         ),
         
-        # ALR Biplot Tab
-        tabPanel(
-          "ALR biplot",
-          br(),
-          wellPanel(
-            h4("Choice of ALR biplot"),
-            uiOutput("alr_ui"),
-            checkboxInput("show_confidence_ellipses_alr", "Show Confidence Ellipses", value = FALSE)
-          ),
-          plot_text_controls_ui("alr_biplot"),
-          axis_text_controls_ui("alr_biplot"),
-          plotlyOutput("alr_biplot", height = "650px"),
-          export_controls_ui("alr_biplot", "Export ALR biplot")
-        ),
-        
         # ILR Biplot Tab
         tabPanel(
           "ILR biplot",
           br(),
-          wellPanel(
-            h4("Choice of ILR biplot"),
-            uiOutput("ilr_ui"),
-            checkboxInput("show_confidence_ellipses_alr", "Show Confidence Ellipses", value = FALSE)
+          
+          fluidRow(
+            column(
+              6,
+              wellPanel(
+                h4("Choice of ILR biplot"),
+                uiOutput("ilr_ui"),
+                checkboxInput("show_dimensio_plots", "Display dimensio plots", value = FALSE),
+                checkboxInput("show_confidence_ellipses", "Show Confidence Ellipses", value = FALSE)
+              )
+            ),
+            
+            column(
+              6,
+              wellPanel(
+                h4("PCA Calculation Groups"),
+                checkboxGroupInput(
+                  "pca_calculation_groups_ilr",
+                  "Groups for PCA calculation:",
+                  choices = NULL,
+                  selected = NULL,
+                  inline = FALSE
+                ),
+                tags$small(
+                  "Only samples from these groups will be used to calculate the PCA axes. All groups will be displayed.",
+                  style = "color: var(--xrf-muted); display: block; margin-top: 5px;"
+                ),
+                tags$div(
+                  style = "margin-top: 10px;",
+                  actionButton("select_all_for_pca_ilr", "Select All Groups", class = "btn-default")
+                )
+              )
+            )
           ),
+          
           plot_text_controls_ui("ilr_biplot"),
           axis_text_controls_ui("ilr_biplot"),
+          
           plotlyOutput("ilr_biplot", height = "650px"),
-          export_controls_ui("ilr_biplot", "Export ILR biplot")
+          export_controls_ui("ilr_biplot", "Export ILR biplot"),
+          
+          conditionalPanel(
+            condition = "input.show_dimensio_plots === true",
+            plot_text_controls_ui("dimensio_scree"),
+            axis_text_controls_ui("dimensio_scree"),
+            plotOutput("dimensio_scree", height = "350px"),
+            export_controls_ui("dimensio_scree", "Export (dimensio)"),
+            plot_text_controls_ui("dimensio_individuals"),
+            axis_text_controls_ui("dimensio_individuals"),
+            plotOutput("dimensio_individuals", height = "450px"),
+            export_controls_ui("dimensio_individuals", "Export individuals (dimensio)"),
+            plot_text_controls_ui("dimensio_variables"),
+            axis_text_controls_ui("dimensio_variables"),
+            plotOutput("dimensio_variables", height = "450px"),
+            export_controls_ui("dimensio_variables", "Export variables (dimensio)")
+          )
         ),
         
         # Boxplots Tab ####

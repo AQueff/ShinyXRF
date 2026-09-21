@@ -385,7 +385,7 @@ make_group_palette <- function(groups, palette_name = "Okabe-Ito") {
     grDevices::hcl(h = hues, c = 85, l = 55, fixup = TRUE)
   }
   
-  if (palette_name %in% c("Infinie (HCL)")) {
+  if (palette_name %in% c("Infinite (HCL)")) {
     colours <- make_infinite_hcl(n_groups)
   } else if (palette_name %in% c("rainbow", "Rainbow")) {
     colours <- grDevices::rainbow(n_groups)
@@ -649,8 +649,8 @@ plot_clr_biplot <- function(
   axis_y <- axes[2]
   x_name <- paste0("PC", axis_x)
   y_name <- paste0("PC", axis_y)
-  x_default_label <- paste0(x_name, " (", round(var_pca[axis_x] * 100, 1), " % )")
-  y_default_label <- paste0(y_name, " (", round(var_pca[axis_y] * 100, 1), " % )")
+  x_default_label <- paste0(x_name, " (", round(var_pca[axis_x] * 100, 1), " %)")
+  y_default_label <- paste0(y_name, " (", round(var_pca[axis_y] * 100, 1), " %)")
   x_axis_label <- plot_label_field(label_overrides, "x", x_default_label)
   y_axis_label <- plot_label_field(label_overrides, "y", y_default_label)
   legend_title <- plot_label_field(label_overrides, "legend", colour_label)
@@ -771,8 +771,8 @@ plot_alr_biplot <- function(
   axis_y <- axes[2]
   x_name <- paste0("PC", axis_x)
   y_name <- paste0("PC", axis_y)
-  x_default_label <- paste0(x_name, " (", round(var_pca[axis_x] * 100, 1), " % )")
-  y_default_label <- paste0(y_name, " (", round(var_pca[axis_y] * 100, 1), " % )")
+  x_default_label <- paste0(x_name, " (", round(var_pca[axis_x] * 100, 1), " %)")
+  y_default_label <- paste0(y_name, " (", round(var_pca[axis_y] * 100, 1), " %)")
   x_axis_label <- plot_label_field(label_overrides, "x", x_default_label)
   y_axis_label <- plot_label_field(label_overrides, "y", y_default_label)
   legend_title <- plot_label_field(label_overrides, "legend", colour_label)
@@ -892,8 +892,8 @@ plot_ilr_biplot <- function(
   axis_y <- axes[2]
   x_name <- paste0("PC", axis_x)
   y_name <- paste0("PC", axis_y)
-  x_default_label <- paste0(x_name, " (", round(var_pca[axis_x] * 100, 1), " % )")
-  y_default_label <- paste0(y_name, " (", round(var_pca[axis_y] * 100, 1), " % )")
+  x_default_label <- paste0(x_name, " (", round(var_pca[axis_x] * 100, 1), " %)")
+  y_default_label <- paste0(y_name, " (", round(var_pca[axis_y] * 100, 1), " %)")
   x_axis_label <- plot_label_field(label_overrides, "x", x_default_label)
   y_axis_label <- plot_label_field(label_overrides, "y", y_default_label)
   legend_title <- plot_label_field(label_overrides, "legend", colour_label)
@@ -1966,4 +1966,197 @@ plot_correlation_matrix <- function(
     )
   
   p
+}
+
+project_on_pca <- function(new_data, pca_model) {
+  req(ncol(new_data) == ncol(pca_model$rotation))
+  centered_new <- scale(new_data, center = pca_model$center, scale = FALSE)
+  scores <- centered_new %*% pca_model$rotation
+  scores
+}
+
+split_data_for_projection <- function(data, group_col, calculation_groups) {
+  req(group_col, nrow(data) > 0)
+  
+  groups <- as.character(data[[group_col]])
+  groups[is.na(groups)] <- "NA"
+  
+  valid_groups <- unique(groups[groups != "NA" & groups != ""])
+  
+  if (is.null(calculation_groups) || length(calculation_groups) == 0) {
+    calculation_groups <- valid_groups
+  }
+  
+  calculation_groups <- as.character(calculation_groups)
+  
+  calc_idx <- which(groups %in% calculation_groups)
+  
+  list(
+    calculation_data = data[calc_idx, , drop = FALSE],
+    calculation_indices = calc_idx,
+    calculation_groups = calculation_groups
+  )
+}
+
+create_biplot_with_projection <- function(
+    matrix_data,
+    group_values,
+    sample_ids,
+    calculation_indices,
+    axes = c(1, 2),
+    colour_label,
+    palette_name = "Okabe-Ito",
+    aesthetic_mode = "colour",
+    shape_palette_name = "Classic",
+    axis_text_size = 11,
+    label_overrides = NULL,
+    show_confidence_ellipses = FALSE,
+    title = "Biplot with projection"
+) {
+  axis_text_size <- safe_axis_text_size(axis_text_size, default = 11)
+  title <- safe_plot_title(title, "Biplot with projection")
+  
+  req(nrow(matrix_data) >= 2, length(axes) == 2)
+  req(length(calculation_indices) >= 2, "At least 2 samples from calculation groups are required for PCA.")
+  
+  calc_matrix <- matrix_data[calculation_indices, , drop = FALSE]
+  pca <- prcomp(calc_matrix, center = TRUE, scale. = FALSE)
+  
+  var_pca <- pca$sdev^2 / sum(pca$sdev^2)
+  
+  center <- pca$center
+  centered_all <- matrix_data
+  for (i in 1:ncol(centered_all)) {
+    centered_all[, i] <- centered_all[, i] - center[i]
+  }
+  
+  all_scores <- centered_all %*% pca$rotation
+  
+  axis_x <- axes[1]
+  axis_y <- axes[2]
+  
+  x_name <- paste0("PC", axis_x)
+  y_name <- paste0("PC", axis_y)
+  x_default_label <- paste0(x_name, " (", round(var_pca[axis_x] * 100, 1), " %)")
+  y_default_label <- paste0(y_name, " (", round(var_pca[axis_y] * 100, 1), " %)")
+  x_axis_label <- plot_label_field(label_overrides, "x", x_default_label)
+  y_axis_label <- plot_label_field(label_overrides, "y", y_default_label)
+  legend_title <- plot_label_field(label_overrides, "legend", "Group")
+  
+  all_points <- data.frame(
+    x = as.numeric(all_scores[, axis_x]),
+    y = as.numeric(all_scores[, axis_y]),
+    Sample = sample_ids,
+    Group = as.factor(group_values),
+    Type = ifelse(1:nrow(matrix_data) %in% calculation_indices, "Calculation", "Projection"),
+    stringsAsFactors = FALSE
+  )
+  
+  all_points$hover_text <- paste0(
+    "Sample: ", all_points$Sample,
+    "<br>Group: ", all_points$Group,
+    "<br>Type: ", all_points$Type
+  )
+  
+  variables <- data.frame(
+    x = as.numeric(pca$rotation[, axis_x]),
+    y = as.numeric(pca$rotation[, axis_y]),
+    Element = rownames(pca$rotation),
+    stringsAsFactors = FALSE
+  )
+  
+  scale_x <- max(abs(all_points$x), na.rm = TRUE) / max(abs(variables$x), na.rm = TRUE)
+  scale_y <- max(abs(all_points$y), na.rm = TRUE) / max(abs(variables$y), na.rm = TRUE)
+  arrow_scale <- 0.8 * min(scale_x, scale_y)
+  if (!is.finite(arrow_scale) || arrow_scale <= 0) arrow_scale <- 1
+  
+  variables$xend <- variables$x * arrow_scale
+  variables$yend <- variables$y * arrow_scale
+  
+  p <- ggplot(all_points, aes(x = x, y = y, text = hover_text)) +
+    geom_hline(yintercept = 0, colour = "grey70", size = 0.25) +
+    geom_vline(xintercept = 0, colour = "grey70", size = 0.25)
+  
+  p_calc <- subset(all_points, Type == "Calculation")
+  p_proj <- subset(all_points, Type == "Projection")
+  
+  if (identical(aesthetic_mode, "shape")) {
+    group_shapes <- make_group_shapes(all_points$Group, shape_palette_name = shape_palette_name)
+    
+    p <- p +
+      geom_point(
+        data = p_calc,
+        aes(shape = Group),
+        colour = "grey10", fill = "white", size = 2.2, alpha = 1, stroke = 0.8
+      )
+    
+    if (nrow(p_proj) > 0) {
+      p <- p +
+        geom_point(
+          data = p_proj,
+          aes(shape = Group),
+          colour = "grey40", fill = "white", size = 2.2, alpha = 0.6, stroke = 0.8
+        )
+    }
+    
+    p <- p +
+      scale_shape_manual(values = group_shapes, na.translate = FALSE, drop = FALSE) +
+      labs(shape = legend_title)
+  } else {
+    group_palette <- make_group_palette(all_points$Group, palette_name = palette_name)
+    group_colors <- unname(group_palette)
+    
+    p <- p +
+      geom_point(
+        data = p_calc,
+        aes(colour = Group, fill = Group),
+        size = 2.2, alpha = 1, stroke = 0.8
+      )
+    
+    if (nrow(p_proj) > 0) {
+      p <- p +
+        geom_point(
+          data = p_proj,
+          aes(colour = Group, fill = Group),
+          size = 2.2, alpha = 0.4, stroke = 0.8
+        )
+    }
+    
+    p <- p +
+      scale_colour_manual(values = group_palette, na.translate = FALSE, drop = FALSE) +
+      scale_fill_manual(values = group_colors, na.translate = FALSE, drop = FALSE) +
+      labs(colour = legend_title, fill = legend_title)
+  }
+  
+  if (isTRUE(show_confidence_ellipses) && nrow(p_calc) >= 3) {
+    p <- p +
+      stat_ellipse(
+        data = p_calc,
+        aes(x = x, y = y, group = Group, fill = Group, colour = Group),
+        level = 0.95, alpha = 0.2, size = 0.5
+      )
+  }
+  
+  p +
+    geom_segment(
+      data = variables,
+      aes(x = 0, y = 0, xend = xend, yend = yend),
+      inherit.aes = FALSE,
+      arrow = arrow(length = unit(0.2, "cm")),
+      colour = "grey20"
+    ) +
+    geom_text(
+      data = variables,
+      aes(x = xend, y = yend, label = Element),
+      inherit.aes = FALSE,
+      nudge_x = 0.08, nudge_y = 0.08, size = 3.2
+    ) +
+    coord_fixed() +
+    theme_xrf_clean(base_size = axis_text_size) +
+    apply_gg_axis_text_size(axis_text_size = axis_text_size) +
+    labs(
+      title = title,
+      x = x_axis_label,
+      y = y_axis_label
+    )
 }
